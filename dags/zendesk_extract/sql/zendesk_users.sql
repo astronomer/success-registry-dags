@@ -1,0 +1,56 @@
+drop table if exists sandbox_chronek.zendesk_users;
+create table sandbox_chronek.zendesk_users (
+  id int,
+  url varchar(128),
+  name varchar(128),
+  email varchar(128),
+  created_at timestamp,
+  updated_at timestamp,
+  time_zone varchar(128),
+  iana_time_zone varchar(128),
+  phone varchar(64),
+  shared_phone_number varchar(64),
+  locale_id int,
+  locale varchar(64),
+  organization_id int,
+  role varchar,
+  verified boolean,
+  external_id int, --guess because there is nothing there
+  tags array,
+  alias varchar, --guess because there is nothing there
+  active boolean,
+  shared boolean,
+  shared_agent boolean,
+  last_login_at timestamp,
+  two_factor_auth_enabled boolean,
+  signature varchar(256),
+  details varchar(256),
+  notes text,
+  role_type int,
+  custom_role_id int,
+  moderator boolean,
+  ticket_restriction varchar(128),
+  only_private_comments boolean,
+  restricted_agent boolean,
+  suspended boolean,
+  default_group_id int,
+  report_csv boolean,
+  "photo.url" varchar(256),
+  "photo.id" int,
+  "photo.file_name" varchar(256),
+  "photo.content_url" varchar(256),
+  "photo.mapped_content_url" varchar(256),
+  "photo.content_type" varchar(128),
+  "photo.size" int,
+  "photo.width" int,
+  "photo.height"int,
+  "photo.inline" boolean,
+  "photo.deleted" boolean,
+  "photo.thumbnails" varchar(1024),
+  "user_fields.agent_ooo" boolean,
+  photo varchar(256), --guess because there is nothing there
+  permanently_deleted boolean
+);
+copy into sandbox_chronek.zendesk_users FROM 's3://airflow-success/zendesk_extract/users/users.csv'
+credentials = (aws_key_id=%(aws_access_key_id)s aws_secret_key=%(aws_secret_access_key)s)
+file_format = (type = csv, record_delimiter= '\n' field_delimiter=',' field_optionally_enclosed_by='"' skip_header=1)
