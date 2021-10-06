@@ -1,5 +1,5 @@
-drop table if exists sandbox_chronek.zendesk_organizations;
-create table sandbox_chronek.zendesk_organizations (
+drop table if exists {{ params.schema_name }}.{{ params.table_name }};
+create table {{ params.schema_name }}.{{ params.table_name }} (
   url varchar(256), --max 70
   id int, --max 13
   name varchar(256), --max 32
@@ -22,6 +22,6 @@ create table sandbox_chronek.zendesk_organizations (
   "organization_fields.infra_expertise" varchar(256), --max 28
   "organization_fields.support_level" varchar(256) --max 15
 );
-copy into sandbox_chronek.zendesk_organizations FROM 's3://airflow-success/zendesk_extract/organizations/organizations.csv'
-credentials = (aws_key_id=%(aws_access_key_id)s aws_secret_key=%(aws_secret_access_key)s)
+copy into {{ params.schema_name }}.{{ params.table_name }} FROM 's3://airflow-success/zendesk_extract/organizations/organizations.csv'
+credentials = (aws_key_id='{{ params.aws_access_key_id }}' aws_secret_key='{{ params.aws_secret_access_key }}')
 file_format = (type = csv, record_delimiter= '\n' field_delimiter=',' field_optionally_enclosed_by='"' skip_header=1)

@@ -1,5 +1,5 @@
-drop table if exists sandbox_chronek.zendesk_users;
-create table sandbox_chronek.zendesk_users (
+drop table if exists {{ params.schema_name }}.{{ params.table_name }};
+create table {{ params.schema_name }}.{{ params.table_name }} (
   id int,
   url varchar(128),
   name varchar(128),
@@ -51,6 +51,6 @@ create table sandbox_chronek.zendesk_users (
   photo varchar(256), --guess because there is nothing there
   permanently_deleted boolean
 );
-copy into sandbox_chronek.zendesk_users FROM 's3://airflow-success/zendesk_extract/users/users.csv'
-credentials = (aws_key_id=%(aws_access_key_id)s aws_secret_key=%(aws_secret_access_key)s)
+copy into {{ params.schema_name }}.{{ params.table_name }} FROM 's3://airflow-success/zendesk_extract/users/users.csv'
+credentials = (aws_key_id='{{ params.aws_access_key_id }}' aws_secret_key='{{ params.aws_secret_access_key }}')
 file_format = (type = csv, record_delimiter= '\n' field_delimiter=',' field_optionally_enclosed_by='"' skip_header=1)

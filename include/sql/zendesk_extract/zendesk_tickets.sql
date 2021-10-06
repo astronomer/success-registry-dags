@@ -1,5 +1,5 @@
-drop table if exists sandbox_chronek.zendesk_tickets;
-create table sandbox_chronek.zendesk_tickets (
+drop table if exists {{ params.schema_name }}.{{ params.table_name }};
+create table {{ params.schema_name }}.{{ params.table_name  }} (
   url varchar(64), --max 55
   id int, -- max 4
   external_id varchar, --max 0
@@ -50,6 +50,6 @@ create table sandbox_chronek.zendesk_tickets (
   "satisfaction_rating.reason" varchar(256), --max 18
   "satisfaction_rating.reason_id" varchar(256) --max 12
 );
-copy into sandbox_chronek.zendesk_tickets FROM 's3://airflow-success/zendesk_extract/tickets_full_extract/all_tickets.csv'
-credentials = (aws_key_id=%(aws_access_key_id)s aws_secret_key=%(aws_secret_access_key)s)
+copy into {{ params.schema_name }}.{{ params.table_name }} FROM 's3://airflow-success/zendesk_extract/tickets_full_extract/all_tickets.csv'
+credentials = (aws_key_id='{{ params.aws_access_key_id }}' aws_secret_key='{{ params.aws_secret_access_key }}')
 file_format = (type = csv, record_delimiter= '\n' field_delimiter=',' field_optionally_enclosed_by='"' skip_header=1)
