@@ -28,17 +28,15 @@ class ZendeskClient:
             df = self._filter_and_sort_ticket_df(df)
         self._upload_zendesk_json_to_s3_as_csv(df=df, key=key, replace=True)
 
-    def _upload_organizations_to_s3(self):
+    def _upload_organizations_to_s3(self, key="out.csv"):
         df = self._get_all(object='organizations')
-        self._upload_zendesk_json_to_s3_as_csv(df=df, key="zendesk_extract/organizations/organizations.csv")
+        self._upload_zendesk_json_to_s3_as_csv(df=df, key=key)
 
     def _get_all(self, object, ds='2015-01-01'):
-        if object == 'users':
-            endpoint = f'/api/v2/incremental/users.json'
+        if object == 'users' or object == 'organizations':
+            endpoint = f'/api/v2/incremental/{object}.json'
         elif object == 'tickets':
             endpoint = f'/api/v2/incremental/tickets/cursor.json'
-        elif object == 'organizations':
-            endpoint = f'/api/v2/incremental/organizations.json'
         else:
             ValueError("Object not defined")
         end_of_stream = False

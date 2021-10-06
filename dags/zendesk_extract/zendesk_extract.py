@@ -88,7 +88,10 @@ with DAG(
 
     upload_organizations_to_s3 = PythonOperator(
         task_id="upload_organizations_to_s3",
-        python_callable=ZendeskClient()._upload_organizations_to_s3
+        python_callable=ZendeskClient()._upload_organizations_to_s3,
+        op_kwargs={
+            "key": "zendesk_extract/organizations/organizations.csv"
+        }
     )
 
     extract_s3_organizations_to_snowflake = SnowflakeOperator(
