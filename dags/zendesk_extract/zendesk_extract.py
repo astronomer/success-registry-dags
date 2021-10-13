@@ -145,6 +145,11 @@ with DAG(
 
 
     start >> [tickets_start, organizations_start, users_start]
+    '''
+    extract_s3_daily_tickets_to_snowflake has two downstream tasks. start_full_load is triggered if the upstream fails
+    causing the table and schema to be reset. If the upstream succeeds, then the start_full_load is skipped and 
+    tickets_finish is triggered
+    '''
     tickets_start >> upload_daily_tickets_to_s3 >> extract_s3_daily_tickets_to_snowflake >> [start_full_load, tickets_finish]
     start_full_load >> upload_full_tickets_to_s3 >> full_ticket_extract_to_snowflake >> tickets_finish
     organizations_start >> upload_organizations_to_s3 >> extract_s3_organizations_to_snowflake >> organizations_finish
