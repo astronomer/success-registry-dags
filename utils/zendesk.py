@@ -19,13 +19,13 @@ class ZendeskClient:
         df = self._get_all(object='users')
         self._upload_zendesk_json_to_s3_as_csv(df=df, key=key)
 
-    def _upload_tickets_to_s3(self, ds, key="out.csv", incremental=True):
+    def _upload_tickets_to_s3(self, ds, cols, key="out.csv", incremental=True):
         if incremental is True:
             df = self._get_tickets_ds(ds=ds)
-            df = self._filter_and_sort_ticket_df(df)
+            df = self._filter_and_sort_ticket_df(df, cols)
         else:
             df = self._get_all(object='tickets')
-            df = self._filter_and_sort_ticket_df(df)
+            df = self._filter_and_sort_ticket_df(df, cols)
         self._upload_zendesk_json_to_s3_as_csv(df=df, key=key, replace=True)
 
     def _upload_organizations_to_s3(self, key="out.csv"):
@@ -66,58 +66,7 @@ class ZendeskClient:
         data = self._get_request(endpoint)
         return pd.json_normalize(data, record_path=['tickets'])
 
-    def _filter_and_sort_ticket_df(self, df):
-        cols = [
-            "url",
-            "id",
-            "external_id",
-            "created_at",
-            "updated_at",
-            "type",
-            "subject",
-            "raw_subject",
-            "description",
-            "priority",
-            "status",
-            "recipient",
-            "requester_id",
-            "submitter_id",
-            "assignee_id",
-            "organization_id",
-            "group_id",
-            "collaborator_ids",
-            "follower_ids",
-            "email_cc_ids",
-            "forum_topic_id",
-            "problem_id",
-            "has_incidents",
-            "is_public",
-            "due_at",
-            "tags",
-            "custom_fields",
-            "sharing_agreement_ids",
-            "fields",
-            "followup_ids",
-            "ticket_form_id",
-            "brand_id",
-            "allow_channelback",
-            "allow_attachments",
-            "generated_timestamp",
-            "via.channel",
-            "via.source.rel",
-            "satisfaction_rating.score",
-            "via.source.from.address",
-            "via.source.from.name",
-            "via.source.to.name",
-            "via.source.to.address",
-            "via.source.from.ticket_id",
-            "via.source.from.subject",
-            "via.source.from.channel",
-            "satisfaction_rating.id",
-            "satisfaction_rating.comment",
-            "satisfaction_rating.reason",
-            "satisfaction_rating.reason_id"
-        ]
+    def _filter_and_sort_ticket_df(self, df, cols):
         df.filter(items=cols)
         df = df.reindex(columns=cols)
         return df

@@ -4,6 +4,7 @@ from airflow.operators.python import PythonOperator
 from airflow.providers.snowflake.operators.snowflake import SnowflakeOperator
 from datetime import datetime
 from utils.zendesk import ZendeskClient
+from utils.zendesk_ticket_fields import ticket_cols
 from airflow.hooks.base import BaseHook
 
 def get_aws_extra(extra_field_name):
@@ -14,7 +15,7 @@ with DAG(
         start_date=datetime(2021, 9, 25),
         max_active_runs=1,
         schedule_interval=None,
-        template_searchpath="/usr/local/airflow/include/sql/zendesk_extract/",
+        template_searchpath="/usr/local/airflow/include/zendesk_extract/",
         catchup=True
     ) as dag:
 
@@ -31,6 +32,7 @@ with DAG(
         python_callable=ZendeskClient()._upload_tickets_to_s3,
         op_kwargs={
             "ds": "{{ds}}",
+            "cols": ticket_cols,
             "key": "zendesk_extract/tickets/{{ds}}/tickets.csv",
             "incremental": True
         }
@@ -39,7 +41,7 @@ with DAG(
     extract_s3_daily_tickets_to_snowflake = SnowflakeOperator(
             task_id="copy_daily_tickets_to_snowflake",
             snowflake_conn_id="my_snowflake_conn",
-            sql="{% include 'zendesk_tickets_daily.sql' %}",
+            sql="{% include 'sql/zendesk_tickets_daily.sql' %}",
             params={
                 "schema_name": "sandbox_chronek",
                 "table_name": "zendesk_tickets_daily",
@@ -58,6 +60,7 @@ with DAG(
         task_id="upload_full_tickets_to_s3",
         python_callable=ZendeskClient()._upload_tickets_to_s3,
         op_kwargs={
+            "cols": ticket_cols,
             "key": "zendesk_extract/tickets_full_extract/all_tickets.csv",
             "incremental": False
         }
@@ -66,7 +69,7 @@ with DAG(
     full_ticket_extract_to_snowflake = SnowflakeOperator(
             task_id="copy_full_tickets_to_snowflake",
             snowflake_conn_id="my_snowflake_conn",
-            sql="{% include 'zendesk_tickets.sql' %}",
+            sql="{% include 'sql/zendesk_tickets.sql' %}",
             params={
                 "schema_name": "sandbox_chronek",
                 "table_name": "zendesk_tickets",
@@ -96,7 +99,7 @@ with DAG(
     extract_s3_organizations_to_snowflake = SnowflakeOperator(
             task_id="copy_organizations_to_snowflake",
             snowflake_conn_id="my_snowflake_conn",
-            sql="{% include 'zendesk_organizations.sql' %}",
+            sql="{% include 'sql/zendesk_organizations.sql' %}",
             params={
                 "schema_name": "sandbox_chronek",
                 "table_name": "zendesk_organizations",
@@ -125,7 +128,7 @@ with DAG(
     extract_s3_users_to_snowflake = SnowflakeOperator(
             task_id="copy_users_to_snowflake",
             snowflake_conn_id="my_snowflake_conn",
-            sql="{% include 'zendesk_users.sql' %}",
+            sql="{% include 'sql/zendesk_users.sql' %}",
             params={
                 "schema_name": "sandbox_chronek",
                 "table_name": "zendesk_users",
