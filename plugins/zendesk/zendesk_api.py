@@ -3,31 +3,48 @@ import time
 import pandas as pd
 import requests
 import io
+from airflow.models import BaseOperator
 from airflow.providers.amazon.aws.hooks.s3 import S3Hook
 from airflow.hooks.base import BaseHook
 
-class ZendeskClient:
-    def __init__(self):
-        self.s3_hook = S3Hook(aws_conn_id='my_conn_s3')
-        self.bucket_name = 'airflow-success'
-        self.connection = BaseHook.get_connection("zendesk_api")
-        self.domain = 'https://astronomer.zendesk.com'
+class ZendeskToS3(BaseOperator):
+    def __init__(
+            self,
+            zendesk_conn_id,
+            zendesk_domain,
+            s3_conn_id,
+            s3_bucket_name,
+            **kwargs
+    ) -> None:
+        super().__init__(**kwargs)
+        self.s3_hook = S3Hook(aws_conn_id=s3_conn_id)
+        self.bucket_name = s3_bucket_name
+        self.connection = BaseHook.get_connection(zendesk_conn_id)
+        self.domain = zendesk_domain
         self.user = self.connection.login + '/token'
         self.pwd = self.connection.password
 
-    def _upload_to_s3(self, zendesk_object, key="out.csv", ds=None, cols=None, incremental=False):
+    def _upload_users_to_s3(self, key="out.csv"):
+        df = self._get_all(object='users')
+        self._upload_zendesk_json_to_s3_as_csv(df=df, key=key)
+
+    def _upload_tickets_to_s3(self, ds, cols, key="out.csv", incremental=True):
         if incremental is True:
-            df = self._get_daily(ds=ds, zendesk_object=zendesk_object)
-            df = self._filter_and_sort_df(df=df, columns=cols)
+            df = self._get_tickets_ds(ds=ds)
+            df = self._filter_and_sort_ticket_df(df, cols)
         else:
-            df = self._get_all(zendesk_object=zendesk_object)
-            df = self._filter_and_sort_df(df=df, columns=cols)
+            df = self._get_all(object='tickets')
+            df = self._filter_and_sort_ticket_df(df, cols)
         self._upload_zendesk_json_to_s3_as_csv(df=df, key=key, replace=True)
 
-    def _get_all(self, zendesk_object, ds='1970-01-01'):
-        if zendesk_object == 'users' or zendesk_object == 'organizations':
-            endpoint = f'/api/v2/incremental/{zendesk_object}.json'
-        elif zendesk_object == 'tickets':
+    def _upload_organizations_to_s3(self, key="out.csv"):
+        df = self._get_all(object='organizations')
+        self._upload_zendesk_json_to_s3_as_csv(df=df, key=key)
+
+    def _get_all(self, object, ds='2015-01-01'):
+        if object == 'users' or object == 'organizations':
+            endpoint = f'/api/v2/incremental/{object}.json'
+        elif object == 'tickets':
             endpoint = f'/api/v2/incremental/tickets/cursor.json'
         else:
             ValueError("Object not defined")
@@ -38,30 +55,29 @@ class ZendeskClient:
         url = endpoint + f"?start_time={int(start_unix)}"
         while end_of_stream is False:
             data = self._get_request(url)
-            df = pd.json_normalize(data, record_path=[zendesk_object])
+            df = pd.json_normalize(data, record_path=[object])
             appended_data.append(df)
-            if zendesk_object == 'users' or zendesk_object == 'organizations':
+            if object == 'users' or object == 'organizations':
                 url = str(data['next_page'].replace(self.domain, ''))
-            elif zendesk_object == 'tickets':
+            elif object == 'tickets':
                 url = f"/api/v2/incremental/tickets/cursor.json?cursor={data['after_cursor']}"
             else:
-                ValueError("Zendesk object not defined")
+                ValueError("Object not defined")
             end_of_stream = data['end_of_stream']
             print(f"Page {page_number} complete")
             page_number += 1
         df = pd.concat(appended_data)
         return df
 
-    def _get_daily(self, ds, zendesk_object):
+    def _get_tickets_ds(self, ds):
         start_unix, end_unix = self._get_start_end_unix(ds=ds)
-        endpoint = f"/api/v2/incremental/{zendesk_object}.json?start_time={int(start_unix)}&end_time={int(end_unix)}"
+        endpoint = f"/api/v2/incremental/tickets.json?start_time={start_unix}&end_time={end_unix}"
         data = self._get_request(endpoint)
-        df = pd.json_normalize(data, record_path=[zendesk_object])
-        return df
+        return pd.json_normalize(data, record_path=['tickets'])
 
-    def _filter_and_sort_df(self, df, columns):
-        df.filter(items=columns)
-        df = df.reindex(columns=columns)
+    def _filter_and_sort_ticket_df(self, df, cols):
+        df.filter(items=cols)
+        df = df.reindex(columns=cols)
         return df
 
     def _upload_zendesk_json_to_s3_as_csv(self, df, key="out.csv", replace=True):

@@ -4,11 +4,17 @@ from airflow.operators.python import PythonOperator
 from airflow.providers.snowflake.operators.snowflake import SnowflakeOperator
 from datetime import datetime
 from utils.zendesk import ZendeskClient
-from utils.zendesk_ticket_fields import ticket_cols
+from utils.zendesk_fields import ticket_cols, org_cols, user_cols
 from airflow.hooks.base import BaseHook
 
 def get_aws_extra(extra_field_name):
     return BaseHook.get_connection("my_conn_s3").extra_dejson.get(extra_field_name)
+
+zendesk_extracts = [
+    {"object_name": "tickets", "object_schema": ticket_cols},
+    {"object_name": "organizations", "object_schema": org_cols},
+    {"object_name": "users", "object_schema": user_cols}
+]
 
 with DAG(
         dag_id="zendesk_extract",
@@ -23,138 +29,73 @@ with DAG(
         task_id="start"
     )
 
-    tickets_start = DummyOperator(
-        task_id="tickets_start"
-    )
-
-    upload_daily_tickets_to_s3 = PythonOperator(
-        task_id="upload_daily_tickets_to_s3",
-        python_callable=ZendeskClient()._upload_tickets_to_s3,
-        op_kwargs={
-            "ds": "{{ds}}",
-            "cols": ticket_cols,
-            "key": "zendesk_extract/tickets/{{ds}}/tickets.csv",
-            "incremental": True
-        }
-    )
-
-    extract_s3_daily_tickets_to_snowflake = SnowflakeOperator(
-            task_id="copy_daily_tickets_to_snowflake",
-            snowflake_conn_id="my_snowflake_conn",
-            sql="{% include 'sql/zendesk_tickets_daily.sql' %}",
-            params={
-                "schema_name": "sandbox_chronek",
-                "table_name": "zendesk_tickets_daily",
-                "aws_access_key_id": get_aws_extra("aws_access_key_id"),
-                "aws_secret_access_key": get_aws_extra("aws_secret_access_key")
-            },
-            trigger_rule="all_success"
-        )
-
-    start_full_load = DummyOperator(
-        task_id="start_full_load",
-        trigger_rule="one_failed"
-    )
-
-    upload_full_tickets_to_s3 = PythonOperator(
-        task_id="upload_full_tickets_to_s3",
-        python_callable=ZendeskClient()._upload_tickets_to_s3,
-        op_kwargs={
-            "cols": ticket_cols,
-            "key": "zendesk_extract/tickets_full_extract/all_tickets.csv",
-            "incremental": False
-        }
-    )
-
-    full_ticket_extract_to_snowflake = SnowflakeOperator(
-            task_id="copy_full_tickets_to_snowflake",
-            snowflake_conn_id="my_snowflake_conn",
-            sql="{% include 'sql/zendesk_tickets.sql' %}",
-            params={
-                "schema_name": "sandbox_chronek",
-                "table_name": "zendesk_tickets",
-                "aws_access_key_id": get_aws_extra("aws_access_key_id"),
-                "aws_secret_access_key": get_aws_extra("aws_secret_access_key")
-            },
-            trigger_rule="all_success"
-        )
-
-    tickets_finish = DummyOperator(
-        task_id="tickets_finish",
-        trigger_rule="one_success"
-    )
-
-    organizations_start = DummyOperator(
-        task_id="organizations_start"
-    )
-
-    upload_organizations_to_s3 = PythonOperator(
-        task_id="upload_organizations_to_s3",
-        python_callable=ZendeskClient()._upload_organizations_to_s3,
-        op_kwargs={
-            "key": "zendesk_extract/organizations/organizations.csv"
-        }
-    )
-
-    extract_s3_organizations_to_snowflake = SnowflakeOperator(
-            task_id="copy_organizations_to_snowflake",
-            snowflake_conn_id="my_snowflake_conn",
-            sql="{% include 'sql/zendesk_organizations.sql' %}",
-            params={
-                "schema_name": "sandbox_chronek",
-                "table_name": "zendesk_organizations",
-                "aws_access_key_id": get_aws_extra("aws_access_key_id"),
-                "aws_secret_access_key": get_aws_extra("aws_secret_access_key")
-            },
-            trigger_rule="all_success"
-        )
-
-    organizations_finish = DummyOperator(
-        task_id="organizations_finish"
-    )
-
-    users_start = DummyOperator(
-        task_id="users_start"
-    )
-
-    upload_users_to_s3 = PythonOperator(
-        task_id="upload_users_to_s3",
-        python_callable=ZendeskClient()._upload_users_to_s3,
-        op_kwargs={
-            "key": "zendesk_extract/users/users.csv"
-        }
-    )
-
-    extract_s3_users_to_snowflake = SnowflakeOperator(
-            task_id="copy_users_to_snowflake",
-            snowflake_conn_id="my_snowflake_conn",
-            sql="{% include 'sql/zendesk_users.sql' %}",
-            params={
-                "schema_name": "sandbox_chronek",
-                "table_name": "zendesk_users",
-                "aws_access_key_id": get_aws_extra("aws_access_key_id"),
-                "aws_secret_access_key": get_aws_extra("aws_secret_access_key")
-            },
-            trigger_rule="all_success"
-        )
-
-    users_finish = DummyOperator(
-        task_id="users_finish"
-    )
-
     finish = DummyOperator(
         task_id="finish"
     )
 
+    for extract in zendesk_extracts:
+        extract_start = DummyOperator(task_id=f"{extract['object_name']}_start")
+        extract_daily_to_s3 = PythonOperator(
+            task_id=f"upload_daily_{extract['object_name']}_to_s3",
+            python_callable=ZendeskClient()._upload_to_s3,
+            op_kwargs={
+                "zendesk_object": extract['object_name'],
+                "key": "zendesk_extract/{}/{}/{}.csv".format(extract['object_name'], "{{ds}}", extract['object_name']),
+                "ds": "{{ds}}",
+                "cols": extract['object_schema'],
+                "incremental": True
+            }
+        )
+        extract_daily_to_snowflake = SnowflakeOperator(
+            task_id=f"copy_daily_{extract['object_name']}_to_snowflake",
+            snowflake_conn_id="my_snowflake_conn",
+            sql="sql/zendesk_{}_daily.sql".format(extract['object_name']),
+            params={
+                "schema_name": "sandbox_chronek",
+                "table_name": f"zendesk_{extract['object_name']}_daily",
+                "aws_access_key_id": get_aws_extra("aws_access_key_id"),
+                "aws_secret_access_key": get_aws_extra("aws_secret_access_key")
+            },
+            trigger_rule="all_success"
+        )
+        extract_full_load = DummyOperator(
+            task_id=f"start_{extract['object_name']}_full_load",
+            trigger_rule="one_failed"
+        )
+        extract_full_to_s3 = PythonOperator(
+        task_id=f"upload_full_{extract['object_name']}_to_s3",
+        python_callable=ZendeskClient()._upload_to_s3,
+        op_kwargs={
+            "zendesk_object": extract['object_name'],
+            "key": f"zendesk_extract/{extract['object_name']}/{extract['object_name']}_full_extract/all_{extract['object_name']}.csv",
+            "cols": extract['object_schema']
+        }
+        )
+        extract_full_to_snowflake = SnowflakeOperator(
+            task_id=f"copy_full_{extract['object_name']}_to_snowflake",
+            snowflake_conn_id="my_snowflake_conn",
+            sql="sql/zendesk_{}.sql".format(extract['object_name']),
+            params={
+                "schema_name": "sandbox_chronek",
+                "table_name": f"zendesk_{extract['object_name']}",
+                "aws_access_key_id": get_aws_extra("aws_access_key_id"),
+                "aws_secret_access_key": get_aws_extra("aws_secret_access_key")
+            },
+            trigger_rule="all_success"
+        )
+        extract_finish = DummyOperator(
+            task_id=f"{extract['object_name']}_finish",
+            trigger_rule="one_success"
+        )
 
-    start >> [tickets_start, organizations_start, users_start]
-    '''
-    extract_s3_daily_tickets_to_snowflake has two downstream tasks. start_full_load is triggered if the upstream fails
-    causing the table and schema to be reset. If the upstream succeeds, then the start_full_load is skipped and 
-    tickets_finish is triggered
-    '''
-    tickets_start >> upload_daily_tickets_to_s3 >> extract_s3_daily_tickets_to_snowflake >> [start_full_load, tickets_finish]
-    start_full_load >> upload_full_tickets_to_s3 >> full_ticket_extract_to_snowflake >> tickets_finish
-    organizations_start >> upload_organizations_to_s3 >> extract_s3_organizations_to_snowflake >> organizations_finish
-    users_start >> upload_users_to_s3 >> extract_s3_users_to_snowflake >> users_finish
-    [tickets_finish, organizations_finish, users_finish] >> finish
+        '''
+        extract_daily_to_snowflake has two downstream tasks. extract_full_load is triggered if the upstream 
+        fails causing the table and schema to be reset. If the upstream succeeds, then the extract_full_load is skipped 
+        and extract_finish is triggered
+        '''
+
+        start >> extract_start >> extract_daily_to_s3 >> extract_daily_to_snowflake
+        extract_daily_to_snowflake >> [extract_full_load, extract_finish]
+        extract_full_load >> extract_full_to_s3 >> extract_full_to_snowflake >> extract_finish
+        extract_finish >> finish
+
