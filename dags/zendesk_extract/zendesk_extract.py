@@ -1,11 +1,10 @@
 from airflow import DAG
 from airflow.operators.dummy import DummyOperator
-from airflow.operators.python import PythonOperator
 from airflow.providers.snowflake.operators.snowflake import SnowflakeOperator
 from datetime import datetime
-from utils.zendesk import ZendeskClient
 from utils.zendesk_fields import ticket_cols, org_cols, user_cols
 from airflow.hooks.base import BaseHook
+from plugins.zendesk.zendesk_api import ZendeskToS3Operator
 
 def get_aws_extra(extra_field_name):
     return BaseHook.get_connection("my_conn_s3").extra_dejson.get(extra_field_name)
@@ -35,17 +34,19 @@ with DAG(
 
     for extract in zendesk_extracts:
         extract_start = DummyOperator(task_id=f"{extract['object_name']}_start")
-        extract_daily_to_s3 = PythonOperator(
+
+        extract_daily_to_s3 = ZendeskToS3Operator(
             task_id=f"upload_daily_{extract['object_name']}_to_s3",
-            python_callable=ZendeskClient()._upload_to_s3,
-            op_kwargs={
-                "zendesk_object": extract['object_name'],
-                "key": "zendesk_extract/{}/{}/{}.csv".format(extract['object_name'], "{{ds}}", extract['object_name']),
-                "ds": "{{ds}}",
-                "cols": extract['object_schema'],
-                "incremental": True
-            }
+            ds="{{ ds }}",
+            obj_name=extract['object_name'],
+            cols=extract['object_schema'],
+            is_incremental=True,
+            s3_key=f"zendesk_extract/{extract['object_name']}/{{{{ ds }}}}/{extract['object_name']}.csv",
+            zendesk_conn_id="zendesk_api",
+            s3_conn_id="my_conn_s3",
+            s3_bucket_name="airflow-success"
         )
+
         extract_daily_to_snowflake = SnowflakeOperator(
             task_id=f"copy_daily_{extract['object_name']}_to_snowflake",
             snowflake_conn_id="my_snowflake_conn",
@@ -62,15 +63,19 @@ with DAG(
             task_id=f"start_{extract['object_name']}_full_load",
             trigger_rule="one_failed"
         )
-        extract_full_to_s3 = PythonOperator(
-        task_id=f"upload_full_{extract['object_name']}_to_s3",
-        python_callable=ZendeskClient()._upload_to_s3,
-        op_kwargs={
-            "zendesk_object": extract['object_name'],
-            "key": f"zendesk_extract/{extract['object_name']}/{extract['object_name']}_full_extract/all_{extract['object_name']}.csv",
-            "cols": extract['object_schema']
-        }
+
+        extract_full_to_s3 = ZendeskToS3Operator(
+            task_id=f"upload_full_{extract['object_name']}_to_s3",
+            ds='{{ds}}',
+            obj_name=extract['object_name'],
+            cols=extract['object_schema'],
+            is_incremental=False,
+            s3_key=f"zendesk_extract/{extract['object_name']}/{extract['object_name']}_full_extract/all_{extract['object_name']}.csv",
+            zendesk_conn_id="zendesk_api",
+            s3_conn_id="my_conn_s3",
+            s3_bucket_name="airflow-success"
         )
+
         extract_full_to_snowflake = SnowflakeOperator(
             task_id=f"copy_full_{extract['object_name']}_to_snowflake",
             snowflake_conn_id="my_snowflake_conn",
