@@ -29,21 +29,18 @@ class ZendeskToS3Operator(BaseOperator):
         self.cols = cols
         self.is_incremental = is_incremental
         self.s3_key = s3_key
-        self.s3_hook = S3Hook(aws_conn_id=s3_conn_id)
+        self.s3_conn_id = s3_conn_id
         self.bucket_name = s3_bucket_name
-        self.connection = BaseHook.get_connection(zendesk_conn_id)
-        self.domain = self.connection.host
-        self.user = self.connection.login + '/token'
-        self.pwd = self.connection.password
+        self.zendesk_conn_id = zendesk_conn_id
 
-    def _upload_to_s3(self, zendesk_object, key="out.csv", ds=None, cols=None, incremental=False):
+    def _upload_to_s3(self, s3_hook, zendesk_object, key="out.csv", ds=None, cols=None, incremental=False):
         if incremental is True:
             df = self._get_daily(ds=ds, zendesk_object=zendesk_object)
             df = self._filter_and_sort_df(df=df, columns=cols)
         else:
             df = self._get_all(zendesk_object=zendesk_object)
             df = self._filter_and_sort_df(df=df, columns=cols)
-        self._upload_zendesk_json_to_s3_as_csv(df=df, key=key, replace=True)
+        self._upload_zendesk_json_to_s3_as_csv(s3_hook=s3_hook, df=df, key=key, replace=True)
 
     def _get_all(self, zendesk_object, ds='1970-01-01'):
         if zendesk_object == 'users' or zendesk_object == 'organizations':
@@ -85,11 +82,11 @@ class ZendeskToS3Operator(BaseOperator):
         df = df.reindex(columns=columns)
         return df
 
-    def _upload_zendesk_json_to_s3_as_csv(self, df, key="out.csv", replace=True):
+    def _upload_zendesk_json_to_s3_as_csv(self, s3_hook, df, key="out.csv", replace=True):
         with io.BytesIO() as in_mem_file:
             df.to_csv(in_mem_file, index=False)
             in_mem_file.seek(0)
-            self.s3_hook._upload_file_obj(
+            s3_hook._upload_file_obj(
                 file_obj=in_mem_file,
                 key=key,
                 bucket_name=self.bucket_name,
@@ -108,8 +105,9 @@ class ZendeskToS3Operator(BaseOperator):
         return start_unix, end_unix
 
     def _get_request(self, api_endpoint):
-        url = self.domain + api_endpoint
-        response = requests.get(url, auth=(self.user, self.pwd))
+        connection = BaseHook.get_connection(self.zendesk_conn_id)
+        url = connection.host + api_endpoint
+        response = requests.get(url, auth=(connection.login + '/token', connection.password))
         if response.status_code != 200:
             raise ValueError(f' Response: {response.text}')
         else:
@@ -117,7 +115,9 @@ class ZendeskToS3Operator(BaseOperator):
         return data
 
     def execute(self, context: Any) -> None:
+        s3_hook = S3Hook(aws_conn_id=self.s3_conn_id)
         self._upload_to_s3(
+            s3_hook=s3_hook,
             zendesk_object=self.obj_name,
             key=self.s3_key,
             ds=self.ds,
