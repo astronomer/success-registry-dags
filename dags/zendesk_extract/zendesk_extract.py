@@ -3,7 +3,7 @@ from airflow.hooks.base import BaseHook
 from airflow.operators.dummy import DummyOperator
 from airflow.providers.snowflake.operators.snowflake import SnowflakeOperator
 from datetime import datetime
-from plugins.zendesk.zendesk_api import ZendeskToS3Operator
+from include.zendesk_extract.zendesk_api import ZendeskToS3Operator
 from utils.zendesk_fields import ticket_cols, org_cols, user_cols
 
 def get_aws_extra(extra_field_name):
