@@ -41,8 +41,10 @@ class ZendeskToS3Operator(BaseOperator):
             df = self._get_all(zendesk_object=zendesk_object)
             df = self._filter_and_sort_df(df=df, columns=cols)
         self._upload_zendesk_json_to_s3_as_csv(s3_hook=s3_hook, df=df, key=key, replace=True)
+        return f"s3://{self.bucket_name}/{key}"
 
     def _get_all(self, zendesk_object, ds='1970-01-01'):
+        domain = BaseHook.get_connection(self.zendesk_conn_id).host
         if zendesk_object == 'users' or zendesk_object == 'organizations':
             endpoint = f'/api/v2/incremental/{zendesk_object}.json'
         elif zendesk_object == 'tickets':
@@ -59,7 +61,7 @@ class ZendeskToS3Operator(BaseOperator):
             df = pd.json_normalize(data, record_path=[zendesk_object])
             appended_data.append(df)
             if zendesk_object == 'users' or zendesk_object == 'organizations':
-                url = str(data['next_page'].replace(self.domain, ''))
+                url = str(data['next_page'].replace(domain, ''))
             elif zendesk_object == 'tickets':
                 url = f"/api/v2/incremental/tickets/cursor.json?cursor={data['after_cursor']}"
             else:
@@ -116,7 +118,7 @@ class ZendeskToS3Operator(BaseOperator):
 
     def execute(self, context: Any) -> None:
         s3_hook = S3Hook(aws_conn_id=self.s3_conn_id)
-        self._upload_to_s3(
+        key = self._upload_to_s3(
             s3_hook=s3_hook,
             zendesk_object=self.obj_name,
             key=self.s3_key,
@@ -124,3 +126,4 @@ class ZendeskToS3Operator(BaseOperator):
             cols=self.cols,
             incremental=self.is_incremental
         )
+        return key
