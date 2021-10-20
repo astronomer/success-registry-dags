@@ -16,8 +16,7 @@ with DAG(
         start_date=datetime(2021, 9, 25),
         max_active_runs=1,
         schedule_interval=None,
-        template_searchpath="/usr/local/airflow/include/zendesk_extract/",
-        catchup=True
+        template_searchpath="/usr/local/airflow/include/zendesk_extract/"
     ) as dag:
 
     start = DummyOperator(
