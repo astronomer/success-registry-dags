@@ -1,6 +1,7 @@
 from airflow import DAG
 from airflow.operators.dummy import DummyOperator
 from airflow.providers.snowflake.operators.snowflake import SnowflakeOperator
+from airflow.utils.trigger_rule import TriggerRule
 from airflow.utils.task_group import TaskGroup
 from datetime import datetime
 from include.zendesk_extract.zendesk_api import ZendeskToS3Operator
@@ -57,7 +58,7 @@ with DAG(
             )
             extract_full_load = DummyOperator(
                 task_id=f"start_{zendesk_obj}_full_load",
-                trigger_rule="one_failed"
+                trigger_rule=TriggerRule.ONE_FAILED
             )
 
             extract_full_to_s3 = ZendeskToS3Operator(
@@ -83,7 +84,7 @@ with DAG(
             )
             extract_finish = DummyOperator(
                 task_id=f"{zendesk_obj}_finish",
-                trigger_rule="one_success"
+                trigger_rule=TriggerRule.ONE_SUCCESS
             )
 
             '''
