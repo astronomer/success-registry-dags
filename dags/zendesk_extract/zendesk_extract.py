@@ -19,8 +19,7 @@ with DAG(
         max_active_runs=1,
         schedule_interval=None,
         template_searchpath="/usr/local/airflow/include/zendesk_extract/"
-    ) as dag:
-
+) as dag:
     start = DummyOperator(
         task_id="start"
     )
@@ -97,4 +96,3 @@ with DAG(
             extract_daily_to_snowflake >> [extract_full_load, extract_finish]
             extract_full_load >> extract_full_to_s3 >> extract_full_to_snowflake >> extract_finish
             extract_finish >> finish
-
