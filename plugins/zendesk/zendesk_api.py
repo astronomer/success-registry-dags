@@ -124,3 +124,4 @@ class ZendeskToS3Operator(BaseOperator):
             cols=self.cols,
             incremental=self.is_incremental
         )
+        
