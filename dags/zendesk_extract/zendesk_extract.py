@@ -53,8 +53,7 @@ with DAG(
                 params={
                     "schema_name": "sandbox_chronek",
                     "table_name": f"zendesk_{zendesk_obj}_daily"
-                },
-                trigger_rule="all_success"
+                }
             )
             extract_full_load = DummyOperator(
                 task_id=f"start_{zendesk_obj}_full_load",
@@ -80,8 +79,7 @@ with DAG(
                 params={
                     "schema_name": "sandbox_chronek",
                     "table_name": f"zendesk_{zendesk_obj}"
-                },
-                trigger_rule="all_success"
+                }
             )
             extract_finish = DummyOperator(
                 task_id=f"{zendesk_obj}_finish",
