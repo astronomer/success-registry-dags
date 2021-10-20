@@ -1,13 +1,9 @@
 from airflow import DAG
-from airflow.hooks.base import BaseHook
 from airflow.operators.dummy import DummyOperator
 from airflow.providers.snowflake.operators.snowflake import SnowflakeOperator
 from datetime import datetime
 from include.zendesk_extract.zendesk_api import ZendeskToS3Operator
 from utils.zendesk_fields import ticket_cols, org_cols, user_cols
-
-def get_aws_extra(extra_field_name):
-    return BaseHook.get_connection("my_conn_s3").extra_dejson.get(extra_field_name)
 
 zendesk_extracts = [
     {"object_name": "tickets", "object_schema": ticket_cols},
@@ -53,9 +49,7 @@ with DAG(
             sql="sql/zendesk_{}_daily.sql".format(extract['object_name']),
             params={
                 "schema_name": "sandbox_chronek",
-                "table_name": f"zendesk_{extract['object_name']}_daily",
-                "aws_access_key_id": get_aws_extra("aws_access_key_id"),
-                "aws_secret_access_key": get_aws_extra("aws_secret_access_key")
+                "table_name": f"zendesk_{extract['object_name']}_daily"
             },
             trigger_rule="all_success"
         )
@@ -82,9 +76,7 @@ with DAG(
             sql="sql/zendesk_{}.sql".format(extract['object_name']),
             params={
                 "schema_name": "sandbox_chronek",
-                "table_name": f"zendesk_{extract['object_name']}",
-                "aws_access_key_id": get_aws_extra("aws_access_key_id"),
-                "aws_secret_access_key": get_aws_extra("aws_secret_access_key")
+                "table_name": f"zendesk_{extract['object_name']}"
             },
             trigger_rule="all_success"
         )
