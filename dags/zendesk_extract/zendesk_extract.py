@@ -49,7 +49,7 @@ with DAG(
             extract_daily_to_snowflake = SnowflakeOperator(
                 task_id=f"copy_daily_{zendesk_obj}_to_snowflake",
                 snowflake_conn_id="my_snowflake_conn",
-                sql="sql/zendesk_{}_daily.sql".format(zendesk_obj),
+                sql=f"sql/zendesk_{zendesk_obj}_daily.sql",
                 params={
                     "schema_name": "sandbox_chronek",
                     "table_name": f"zendesk_{zendesk_obj}_daily"
@@ -76,7 +76,7 @@ with DAG(
             extract_full_to_snowflake = SnowflakeOperator(
                 task_id=f"copy_full_{zendesk_obj}_to_snowflake",
                 snowflake_conn_id="my_snowflake_conn",
-                sql="sql/zendesk_{}.sql".format(zendesk_obj),
+                sql=f"sql/zendesk_{zendesk_obj}.sql",
                 params={
                     "schema_name": "sandbox_chronek",
                     "table_name": f"zendesk_{zendesk_obj}"
