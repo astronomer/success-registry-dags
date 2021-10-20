@@ -1,11 +1,11 @@
 import datetime
-import time
+import io
 import pandas as pd
 import requests
-import io
+import time
+from airflow.hooks.base import BaseHook
 from airflow.models import BaseOperator
 from airflow.providers.amazon.aws.hooks.s3 import S3Hook
-from airflow.hooks.base import BaseHook
 from typing import Any, Iterable
 
 class ZendeskToS3Operator(BaseOperator):
@@ -124,4 +124,3 @@ class ZendeskToS3Operator(BaseOperator):
             cols=self.cols,
             incremental=self.is_incremental
         )
-        
