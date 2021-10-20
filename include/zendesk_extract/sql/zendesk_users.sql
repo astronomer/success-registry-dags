@@ -51,6 +51,6 @@ create table {{ params.schema_name }}.{{ params.table_name }} (
   photo varchar(256), --guess because there is nothing there
   permanently_deleted boolean
 );
-copy into {{ params.schema_name }}.{{ params.table_name }} FROM 's3://airflow-success/zendesk_extract/users/users.csv'
+copy into {{ params.schema_name }}.{{ params.table_name }} from 's3://airflow-success/zendesk_extract/users/users.csv'
 credentials = (aws_key_id='{{ conn.my_conn_s3.extra_dejson.aws_access_key_id }}' aws_secret_key='{{ conn.my_conn_s3.extra_dejson.aws_secret_access_key }}')
 file_format = (type = csv, record_delimiter= '\n' field_delimiter=',' field_optionally_enclosed_by='"' skip_header=1)

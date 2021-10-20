@@ -50,6 +50,6 @@ create table {{ params.schema_name }}.{{ params.table_name  }} (
   "satisfaction_rating.reason" varchar(256), --max 18
   "satisfaction_rating.reason_id" varchar(256) --max 12
 );
-copy into {{ params.schema_name }}.{{ params.table_name }} FROM 's3://airflow-success/zendesk_extract/tickets/tickets_full_extract/all_tickets.csv'
+copy into {{ params.schema_name }}.{{ params.table_name }} from 's3://airflow-success/zendesk_extract/tickets/tickets_full_extract/all_tickets.csv'
 credentials = (aws_key_id='{{ conn.my_conn_s3.extra_dejson.aws_access_key_id }}' aws_secret_key='{{ conn.my_conn_s3.extra_dejson.aws_secret_access_key }}')
 file_format = (type = csv, record_delimiter= '\n' field_delimiter=',' field_optionally_enclosed_by='"' skip_header=1)
