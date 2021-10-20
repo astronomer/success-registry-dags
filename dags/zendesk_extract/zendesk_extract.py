@@ -29,60 +29,62 @@ with DAG(
     )
 
     for extract in zendesk_extracts:
-        with TaskGroup(group_id=f"{extract['object_name']}_extract"):
-            extract_start = DummyOperator(task_id=f"{extract['object_name']}_start")
+        zendesk_obj = extract['object_name']
+        zendesk_obj_schema = extract['object_schema']
+        with TaskGroup(group_id=f"{zendesk_obj}_extract"):
+            extract_start = DummyOperator(task_id=f"{zendesk_obj}_start")
 
             extract_daily_to_s3 = ZendeskToS3Operator(
-                task_id=f"upload_daily_{extract['object_name']}_to_s3",
+                task_id=f"upload_daily_{zendesk_obj}_to_s3",
                 ds="{{ ds }}",
-                obj_name=extract['object_name'],
-                cols=extract['object_schema'],
+                obj_name=zendesk_obj,
+                cols=zendesk_obj_schema,
                 is_incremental=True,
-                s3_key=f"zendesk_extract/{extract['object_name']}/{{{{ ds }}}}/{extract['object_name']}.csv",
+                s3_key=f"zendesk_extract/{zendesk_obj}/{{{{ ds }}}}/{zendesk_obj}.csv",
                 zendesk_conn_id="zendesk_api",
                 s3_conn_id="my_conn_s3",
                 s3_bucket_name="airflow-success"
             )
 
             extract_daily_to_snowflake = SnowflakeOperator(
-                task_id=f"copy_daily_{extract['object_name']}_to_snowflake",
+                task_id=f"copy_daily_{zendesk_obj}_to_snowflake",
                 snowflake_conn_id="my_snowflake_conn",
-                sql="sql/zendesk_{}_daily.sql".format(extract['object_name']),
+                sql="sql/zendesk_{}_daily.sql".format(zendesk_obj),
                 params={
                     "schema_name": "sandbox_chronek",
-                    "table_name": f"zendesk_{extract['object_name']}_daily"
+                    "table_name": f"zendesk_{zendesk_obj}_daily"
                 },
                 trigger_rule="all_success"
             )
             extract_full_load = DummyOperator(
-                task_id=f"start_{extract['object_name']}_full_load",
+                task_id=f"start_{zendesk_obj}_full_load",
                 trigger_rule="one_failed"
             )
 
             extract_full_to_s3 = ZendeskToS3Operator(
-                task_id=f"upload_full_{extract['object_name']}_to_s3",
+                task_id=f"upload_full_{zendesk_obj}_to_s3",
                 ds='{{ds}}',
-                obj_name=extract['object_name'],
-                cols=extract['object_schema'],
+                obj_name=zendesk_obj,
+                cols=zendesk_obj_schema,
                 is_incremental=False,
-                s3_key=f"zendesk_extract/{extract['object_name']}/{extract['object_name']}_full_extract/all_{extract['object_name']}.csv",
+                s3_key=f"zendesk_extract/{zendesk_obj}/{zendesk_obj}_full_extract/all_{zendesk_obj}.csv",
                 zendesk_conn_id="zendesk_api",
                 s3_conn_id="my_conn_s3",
                 s3_bucket_name="airflow-success"
             )
 
             extract_full_to_snowflake = SnowflakeOperator(
-                task_id=f"copy_full_{extract['object_name']}_to_snowflake",
+                task_id=f"copy_full_{zendesk_obj}_to_snowflake",
                 snowflake_conn_id="my_snowflake_conn",
-                sql="sql/zendesk_{}.sql".format(extract['object_name']),
+                sql="sql/zendesk_{}.sql".format(zendesk_obj),
                 params={
                     "schema_name": "sandbox_chronek",
-                    "table_name": f"zendesk_{extract['object_name']}"
+                    "table_name": f"zendesk_{zendesk_obj}"
                 },
                 trigger_rule="all_success"
             )
             extract_finish = DummyOperator(
-                task_id=f"{extract['object_name']}_finish",
+                task_id=f"{zendesk_obj}_finish",
                 trigger_rule="one_success"
             )
 
