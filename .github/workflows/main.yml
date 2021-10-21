@@ -1,0 +1,29 @@
+name: CI
+on:
+  push:
+    branch: [dev, main]
+jobs:
+  dev-push:
+    runs-on: ubuntu-latest
+    steps:
+    - uses: actions/checkout@v2
+    - name: Push to registry
+      uses: elgohr/Publish-Docker-Github-Action@master
+      if: github.ref == 'refs/heads/dev'
+      with:
+          name: meteoric-phase-5448/airflow:ci-${{ github.sha }}
+          username: _
+          password: ${{ secrets.SERVICE_ACCOUNT_KEY }}
+          registry: registry.success-ee.success.astronomer-sandbox.io
+  prod-push:
+    runs-on: ubuntu-latest
+    steps:
+    - uses: actions/checkout@v2
+    - name: Push to registry
+      uses: elgohr/Publish-Docker-Github-Action@master
+      if: github.ref == 'refs/heads/main'
+      with:
+          name: meteoric-phase-5448/airflow:ci-${{ github.sha }}
+          username: _
+          password: ${{ secrets.SERVICE_ACCOUNT_KEY }}
+          registry: registry.success-ee.success.astronomer-sandbox.io
