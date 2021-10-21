@@ -11,7 +11,7 @@ jobs:
         uses: elgohr/Publish-Docker-Github-Action@master
         if: github.ref == 'refs/heads/main'
         with:
-          name: meteoric-phase-5448/airflow:ci-${{ github.sha }}
+          name: scientific-protogalaxy-6847/airflow:ci-${{ github.sha }}
           username: _
           password: ${{ secrets.SERVICE_ACCOUNT_KEY }}
           registry: registry.success-ee.success.astronomer-sandbox.io
