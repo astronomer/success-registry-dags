@@ -6,7 +6,7 @@ jobs:
   dev-push:
     runs-on: ubuntu-latest
     steps:
-    - uses: actions/checkout@v2
+    - uses: actions/checkout@v1
     - name: Push to registry
       uses: elgohr/Publish-Docker-Github-Action@master
       if: github.ref == 'refs/heads/dev'
@@ -18,7 +18,7 @@ jobs:
   prod-push:
     runs-on: ubuntu-latest
     steps:
-    - uses: actions/checkout@v2
+    - uses: actions/checkout@v1
     - name: Push to registry
       uses: elgohr/Publish-Docker-Github-Action@master
       if: github.ref == 'refs/heads/main'
