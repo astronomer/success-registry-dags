@@ -6,11 +6,11 @@ jobs:
   prod-push:
     runs-on: ubuntu-latest
     steps:
-    - uses: actions/checkout@v1
-    - name: Push to registry
-      uses: elgohr/Publish-Docker-Github-Action@master
-      if: github.ref == 'refs/heads/main'
-      with:
+      - uses: actions/checkout@v1
+      - name: Push to registry
+        uses: elgohr/Publish-Docker-Github-Action@master
+        if: github.ref == 'refs/heads/main'
+        with:
           name: meteoric-phase-5448/airflow:ci-${{ github.sha }}
           username: _
           password: ${{ secrets.SERVICE_ACCOUNT_KEY }}
