@@ -4,6 +4,9 @@ from airflow.operators.bash_operator import BashOperator
 from airflow.operators.python_operator import PythonOperator
 from airflow.version import version
 from datetime import datetime, timedelta
+from airflow.models import Variable
+
+foo= Variable.get('MY_TEST_SECRET')
 
 
 def my_custom_function(ts,**kwargs):
@@ -14,7 +17,7 @@ def my_custom_function(ts,**kwargs):
     print(f"I am task number {kwargs['task_number']}. This DAG Run execution date is {ts} and the current time is {datetime.now()}")
     print('Here is the full DAG Run context. It is available because provide_context=True')
     print(kwargs)
-
+    print(foo)
 
 # Default settings applied to all tasks
 default_args = {
