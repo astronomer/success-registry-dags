@@ -33,7 +33,7 @@ default_args = {
 with DAG('customer_success_dag_1',
          start_date=datetime(2019, 1, 1),
          max_active_runs=3,
-         schedule_interval=timedelta(minutes=30),  # https://airflow.apache.org/docs/stable/scheduler.html#dag-runs
+         schedule_interval=None,
          default_args=default_args,
          # catchup=False # enable if you don't want historical dag runs to run
          ) as dag:
