@@ -9,6 +9,33 @@ from airflow.providers.amazon.aws.hooks.s3 import S3Hook
 from typing import Any, Iterable
 
 class ZendeskToS3Operator(BaseOperator):
+    """
+    Extracts data from Zendesk REST API endpoints to S3 buckets.
+
+    :param ds: Parameter to pass the airflow jinja templated {{ ds }} variable
+    :type ds: str
+    :param obj_name: The name of the Zendesk object you are extracting, current supported values are ('users',
+        'organizations', and 'tickets')
+    :type obj_name: str
+    :param cols: an array of columns expected to be present in the request. If additional columns are found, or colunns
+        are returned in an inconsistent order, this array will handle them
+    :type cols: array
+    :param is_incremental: If set to false, a full extract will be performed, if true, a daily extract based on {{ ds }}
+        will be performed
+    :type is_incremental: bool
+    :param s3_key: When the http results are uploaded to s3, this represents the key for those results
+    :type s3_key: str
+    :param zendesk_conn_id: References the id for an HTTP connection in the Airflow UI. This connection should have the
+        following parameters, "host": base url for zendesk api calls, "login": email address authorized to make api
+        calls, "password": credentials for that email address
+    :type zendesk_conn_id: str
+    :param s3_conn_id: References the id for an s3 connection in the Airflow UI. This connection should have the
+        following parameters, "extra": {"aws_access_key_id":"<YOUR_AWS_ACCESS_KEY_ID>",
+        "aws_secret_access_key":"<YOUR_AWS_SECRET_ACCESS_KEY>"}
+    :type s3_conn_id: str
+    :param s3_bucket_name: References the base bucket where these uploads should be occuring
+    :type s3_bucket_name: str
+    """
     template_fields: Iterable[str] = ("ds", "s3_key")
 
     def __init__(
