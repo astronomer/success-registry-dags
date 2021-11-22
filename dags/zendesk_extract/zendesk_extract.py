@@ -43,7 +43,7 @@ with DAG(
                 s3_key=f"zendesk_extract/{zendesk_obj}/{{{{ ds }}}}/{zendesk_obj}.csv",
                 zendesk_conn_id="zendesk_api",
                 s3_conn_id="my_conn_s3",
-                s3_bucket_name="airflow-success"
+                s3_bucket_name="<ENTER YOUR BUCKET HERE>"
             )
 
             extract_daily_to_snowflake = SnowflakeOperator(
@@ -51,7 +51,7 @@ with DAG(
                 snowflake_conn_id="my_snowflake_conn",
                 sql=f"sql/zendesk_{zendesk_obj}_daily.sql",
                 params={
-                    "schema_name": "sandbox_chronek",
+                    "schema_name": "<ENTER TARGET SNOWFLAKE SCHEMA HERE>",
                     "table_name": f"zendesk_{zendesk_obj}_daily"
                 }
             )
@@ -69,7 +69,7 @@ with DAG(
                 s3_key=f"zendesk_extract/{zendesk_obj}/{zendesk_obj}_full_extract/all_{zendesk_obj}.csv",
                 zendesk_conn_id="zendesk_api",
                 s3_conn_id="my_conn_s3",
-                s3_bucket_name="airflow-success"
+                s3_bucket_name="<ENTER YOUR BUCKET HERE>"
             )
 
             extract_full_to_snowflake = SnowflakeOperator(
@@ -77,7 +77,7 @@ with DAG(
                 snowflake_conn_id="my_snowflake_conn",
                 sql=f"sql/zendesk_{zendesk_obj}.sql",
                 params={
-                    "schema_name": "sandbox_chronek",
+                    "schema_name": "<ENTER TARGET SNOWFLAKE SCHEMA HERE>",
                     "table_name": f"zendesk_{zendesk_obj}"
                 }
             )
