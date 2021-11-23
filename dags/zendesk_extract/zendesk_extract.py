@@ -7,6 +7,8 @@ from datetime import datetime
 from include.zendesk_extract.zendesk_api import ZendeskToS3Operator
 from utils.zendesk_fields import ticket_cols, org_cols, user_cols
 
+#This is a test comment to test CI/CD
+
 zendesk_extracts = [
     {"object_name": "tickets", "object_schema": ticket_cols},
     {"object_name": "organizations", "object_schema": org_cols},
