@@ -1,7 +1,7 @@
 name: CI
 on:
   push:
-    branches: [main]
+    branches: [dev, main]
 jobs:
   prod-push:
     runs-on: ubuntu-latest
@@ -15,3 +15,16 @@ jobs:
           username: _
           password: ${{ secrets.SERVICE_ACCOUNT_KEY }}
           registry: registry.success-ee.success.astronomer-sandbox.io
+  dev-push:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v1
+      - name: Push to registry
+        uses: elgohr/Publish-Docker-Github-Action@master
+        if: github.ref == 'refs/heads/dev'
+        with:
+          name: true-umbra-5560/airflow:ci-${{ github.sha }}
+          username: _
+          password: ${{ secrets.SERVICE_ACCOUNT_KEY }}
+          registry: registry.success-ee.success.astronomer-sandbox.io
+
