@@ -1,3 +1,11 @@
+"""
+DAG that shows how to extract data from Zendesk into S3.
+
+Data is loaded from Zendesk into Snowflake.  Note that extract_full_load is triggered if the upstream 
+fails causing the table and schema to be reset. If the upstream succeeds, then the extract_full_load is skipped 
+and extract_finish is triggered.
+"""
+
 from airflow import DAG
 from airflow.operators.dummy import DummyOperator
 from airflow.providers.snowflake.operators.snowflake import SnowflakeOperator
@@ -20,7 +28,8 @@ with DAG(
         start_date=datetime(2021, 9, 25),
         max_active_runs=1,
         schedule_interval=None,
-        template_searchpath="/usr/local/airflow/include/zendesk_extract/"
+        template_searchpath="/usr/local/airflow/include/zendesk_extract/",
+        doc_md=__doc__
 ) as dag:
     start = DummyOperator(
         task_id="start"

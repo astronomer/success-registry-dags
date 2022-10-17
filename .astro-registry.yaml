@@ -1,0 +1,9 @@
+# These categories will be applied to all DAGs in the repo.
+categories:
+  - ETL/ELT
+  - Airflow Fundamentals
+  - Data Processing
+# List of DAGs that should be published to the Astronomer Registry.
+dags:
+  - path: dags/postgres_demo_dag/postgres_demo_dag.py
+  - path: dags/zendesk_extract/zendesk_extract.py

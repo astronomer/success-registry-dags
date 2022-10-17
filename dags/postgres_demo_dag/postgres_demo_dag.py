@@ -1,3 +1,9 @@
+"""
+DAG that shows how to query Postgres via the PythonOperator by using the PostgresHook.
+
+Users can also directly use the PostgresOperator.
+"""
+
 from airflow import DAG
 from airflow.operators.dummy import DummyOperator
 from airflow.operators.python import PythonOperator
@@ -20,7 +26,8 @@ with DAG(
         max_active_runs=3,
         schedule_interval=None,
         template_searchpath="/usr/local/airflow/include/postgres_demo_dag/",
-        catchup=False
+        catchup=False,
+        doc_md=__doc__
     ) as dag:
 
     start = DummyOperator(task_id='start')
